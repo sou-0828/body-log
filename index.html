@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>お正月までの記録</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/*
+VOICE: 気軽で前向き、毎朝10秒で記録できる道具
+IDEA: お正月のカウントダウン付き体重計の表示窓
+PICTURE: 今日の体重を大きく表示する記録カード（＋/−で入力）
+COLOUR and TYPE: 紅白（白地・紅 #c8102e・墨）、夜は深い紅墨。Zen Kaku Gothic New
+LAYOUT: スマホ1カラム。カウントダウン→今日の記録→数字→グラフ→メニュー→履歴
+*/
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#140a0c);--card:light-dark(#fbf6f6,#21131a);--ink:light-dark(#1b1416,#f6eeee);--sub:light-dark(#6e5f63,#bfaeb2);--line:light-dark(#ecdfe1,#3a2730);--red:light-dark(#c8102e,#ff5a6e);--redbg:light-dark(#fde7ea,#3d1620);--ok:light-dark(#1f7a4d,#5fd39a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Zen Kaku Gothic New",system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 48px}
+.top{background:var(--red);color:#fff;border-radius:20px;padding:18px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.top small{display:block;font-size:13px;opacity:.9}
+.top b{font-size:clamp(40px,12vw,52px);font-weight:900;line-height:1}
+.top b span{font-size:17px;font-weight:700;margin-left:4px}
+.bar{height:8px;background:rgba(255,255,255,.3);border-radius:8px;margin-top:12px;overflow:hidden}
+.bar i{display:block;height:100%;background:#fff;border-radius:8px}
+.topl{flex:1}
+.goal{text-align:right;font-size:13px;line-height:1.4;white-space:nowrap}
+.goal strong{font-size:17px;display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-top:14px}
+.day{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.day h2{margin:0;font-size:17px;text-align:center;flex:1}
+.day h2 em{font-style:normal;font-size:13px;color:var(--red);display:block}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.nav{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:20px}
+.nav:disabled{opacity:.3}
+.big{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 4px}
+.step{width:52px;height:52px;border-radius:50%;border:0;background:var(--redbg);color:var(--red);font-size:26px;font-weight:700;flex:none}
+.big input{width:100%;max-width:200px;text-align:center;font:900 clamp(48px,15vw,64px)/1 "Zen Kaku Gothic New",sans-serif;color:var(--ink);background:transparent;border:0;padding:0}
+.unit{text-align:center;color:var(--sub);font-size:13px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.field{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:8px 6px;text-align:center}
+.field label{font-size:13px;color:var(--sub);display:block}
+.mini{display:flex;align-items:center;justify-content:center;gap:2px}
+.mini button{width:30px;height:44px;border:0;background:none;color:var(--red);font-size:20px;font-weight:700;flex:none}
+.field input{width:100%;text-align:center;font:700 19px/1.2 "Zen Kaku Gothic New",sans-serif;color:var(--ink);background:transparent;border:0;padding:6px 0}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.tg{min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--bg);font-weight:700;font-size:16px}
+.tg[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
+.tg small{display:block;font-weight:400;font-size:13px;opacity:.85}
+textarea{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);font:16px/1.5 inherit;padding:10px 12px;resize:vertical;min-height:48px}
+.status{font-size:13px;color:var(--sub);text-align:right;margin-top:6px;min-height:20px}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.stat small{font-size:13px;color:var(--sub);display:block}
+.stat b{font-size:24px;font-weight:900;white-space:nowrap}
+.stat b span{font-size:13px;font-weight:700;margin-left:2px}
+.down{color:var(--ok)}.upc{color:var(--red)}
+h3{font-size:17px;margin:0 0 8px}
+.fig{position:relative;height:200px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.legend{font-size:13px;color:var(--sub);display:flex;gap:14px;margin-top:6px}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px;border-radius:2px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tab{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-weight:700}
+.tab[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+ul.list{margin:0;padding:0;list-style:none}
+ul.list li{padding:10px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+ul.list li:first-child{border-top:0}
+ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
+.note{font-size:13px;color:var(--sub);margin:8px 0 0}
+.hist li{cursor:pointer}
+.hist li.on{color:var(--red)}
+.dots{font-size:13px;color:var(--sub);font-weight:400}
+@media(prefers-reduced-motion:no-preference){.bar i{transition:width .6s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="topl">
+      <small>2027年 元旦まで</small>
+      <b id="left">--<span>日</span></b>
+      <div class="bar"><i id="prog" style="width:0"></i></div>
+    </div>
+    <div class="goal">目標<strong>体脂肪率 15%台</strong>週0.3〜0.5kg減</div>
+  </header>
+
+  <section class="card" aria-label="今日の記録">
+    <div class="day">
+      <button class="nav" id="prev" aria-label="前の日">‹</button>
+      <h2 id="dlabel">--</h2>
+      <button class="nav" id="next" aria-label="次の日">›</button>
+    </div>
+    <div class="big">
+      <button class="step" data-k="w" data-d="-0.1" aria-label="体重を0.1減らす">−</button>
+      <input id="w" type="number" inputmode="decimal" step="0.1" placeholder="--.-" aria-label="体重">
+      <button class="step" data-k="w" data-d="0.1" aria-label="体重を0.1増やす">＋</button>
+    </div>
+    <div class="unit">体重 kg（朝・トイレのあと）</div>
+    <div class="grid">
+      <div class="field"><label for="f">体脂肪率 %</label>
+        <div class="mini"><button data-k="f" data-d="-0.1" aria-label="体脂肪率を下げる">−</button><input id="f" type="number" inputmode="decimal" step="0.1" placeholder="--"><button data-k="f" data-d="0.1" aria-label="体脂肪率を上げる">＋</button></div></div>
+      <div class="field"><label for="sl" id="sll">睡眠 h</label>
+        <div class="mini"><button data-k="sl" data-d="-0.5" aria-label="睡眠を減らす">−</button><input id="sl" type="number" inputmode="decimal" step="0.5" placeholder="--"><button data-k="sl" data-d="0.5" aria-label="睡眠を増やす">＋</button></div></div>
+      <div class="field"><label for="st" id="stl">歩数</label>
+        <input id="st" type="number" inputmode="numeric" placeholder="--"></div>
+    </div>
+    <div class="toggles">
+      <button class="tg" id="tr" aria-pressed="false">筋トレ<small id="trsub">やった</small></button>
+      <button class="tg" id="ns" aria-pressed="false">間食なし<small>甘い物・夜食ナシ</small></button>
+    </div>
+    <textarea id="memo" rows="1" placeholder="メモ（忘年会、食べすぎた など）" aria-label="メモ"></textarea>
+    <div class="status" id="status">読み込み中…</div>
+  </section>
+
+  <section class="stats" aria-label="数字">
+    <div class="stat"><small>開始からの変化</small><b id="s1">--</b></div>
+    <div class="stat"><small>直近7日の平均</small><b id="s2">--</b></div>
+    <div class="stat"><small>最新の体脂肪率</small><b id="s3">--</b></div>
+    <div class="stat"><small>筋トレ ／ 間食なし</small><b id="s4">--</b></div>
+  </section>
+
+  <section class="card">
+    <h3>体重の推移</h3>
+    <div class="fig"><svg id="chart" role="img" aria-label="体重の推移グラフ"></svg></div>
+    <div class="legend"><span><i style="background:var(--sub)"></i>毎日</span><span><i style="background:var(--red);height:4px"></i>7日平均</span></div>
+  </section>
+
+  <section class="card">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-t="train" aria-selected="true">筋トレ</button>
+      <button class="tab" role="tab" data-t="food" aria-selected="false">ごはん</button>
+      <button class="tab" role="tab" data-t="hist" aria-selected="false">履歴</button>
+    </div>
+    <div id="panel"></div>
+  </section>
+</div>
+<script>
+{
+const START='2026-11-25',GOAL='2027-01-01',BASE={w:68.1,f:17.8};
+const pad=n=>String(n).padStart(2,'0');
+const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(k,n)=>{const d=parse(k);d.setDate(d.getDate()+n);return key(d)};
+const diff=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
+const WD='日月火水木金土';
+const todayK=key(new Date());
+const clampK=k=>k<START?START:k>GOAL?GOAL:k;
+let cur=clampK(todayK),data={},auto={},autoAt='',tab='train';
+const $=id=>document.getElementById(id);
+const ALL=[];for(let k=START;k<=GOAL;k=addDays(k,1))ALL.push(k);
+
+function get(k){const d={...(data[k]||{})},a=auto[k]||{};if(d.st==null&&a.steps!=null){d.st=a.steps;d.stAuto=1}if(d.sl==null&&a.sleep!=null){d.sl=a.sleep;d.slAuto=1}if(k===START){d.w=d.w??BASE.w;d.f=d.f??BASE.f}return d}
+function lastVal(field,before){for(let i=ALL.indexOf(before);i>=0;i--){const v=get(ALL[i])[field];if(v!=null&&v!=='')return v}return null}
+
+function renderDay(){
+  const d=parse(cur),dw=d.getDay(),e=get(cur);
+  const rel=cur===todayK?'今日':cur===addDays(todayK,-1)?'昨日':'';
+  $('dlabel').innerHTML='';
+  const em=document.createElement('em');em.textContent=rel||(cur===GOAL?'ゴール':'');
+  $('dlabel').append(em,document.createTextNode((d.getMonth()+1)+'月'+d.getDate()+'日（'+WD[dw]+'）'));
+  $('prev').disabled=cur<=START;$('next').disabled=cur>=GOAL||cur>=todayK;
+  for(const f of ['w','f','sl','st']){const el=$(f);if(document.activeElement!==el)el.value=e[f]??''}
+  $('w').placeholder=lastVal('w',cur)??'--.-';
+  $('stl').textContent=e.stAuto?'歩数（自動）':'歩数';$('sll').textContent=e.slAuto?'睡眠 h（自動）':'睡眠 h';
+  setT('tr',!!e.tr);setT('ns',!!e.ns);
+  $('trsub').textContent=[1,3,5].includes(dw)?'今日は筋トレの日':'やった';
+  if(document.activeElement!==$('memo'))$('memo').value=e.memo??'';
+}
+function setT(id,v){$(id).setAttribute('aria-pressed',v?'true':'false')}
+
+function series(){return ALL.filter(k=>k<=todayK).map(k=>({k,w:get(k).w??null}))}
+function avg7(k){const i=ALL.indexOf(k);const v=ALL.slice(Math.max(0,i-6),i+1).map(x=>get(x).w).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null}
+
+function renderStats(){
+  const left=Math.max(0,diff(todayK,GOAL));$('left').firstChild.textContent=left;
+  $('prog').style.width=Math.min(100,Math.max(0,diff(START,todayK)/diff(START,GOAL)*100))+'%';
+  const lw=lastVal('w',clampK(todayK)),ch=lw!=null?lw-BASE.w:null;
+  const s1=$('s1');s1.className=ch==null?'':ch<=0?'down':'upc';
+  s1.textContent=ch==null?'--':(ch>0?'+':ch<0?'−':'±')+Math.abs(ch).toFixed(1);
+  s1.insertAdjacentHTML('beforeend','<span>kg</span>');
+  const a=avg7(clampK(todayK));$('s2').textContent=a==null?'--':a.toFixed(1);$('s2').insertAdjacentHTML('beforeend','<span>kg</span>');
+  const lf=lastVal('f',clampK(todayK));$('s3').textContent=lf==null?'--':Number(lf).toFixed(1);$('s3').insertAdjacentHTML('beforeend','<span>%</span>');
+  let t=0,n=0;for(const k of ALL){const e=data[k];if(e?.tr)t++;if(e?.ns)n++}
+  $('s4').textContent=t+'回 ／ '+n+'日';
+}
+
+const chart=$('chart');
+function draw(){
+  const W=chart.clientWidth,H=chart.clientHeight;if(!W)return;
+  const pts=series().filter(p=>p.w!=null);
+  const L=34,R=10,T=10,B=24,n=ALL.length-1;
+  const vals=pts.map(p=>p.w);let lo=Math.min(...vals,BASE.w-2.5),hi=Math.max(...vals,BASE.w+0.5);
+  lo=Math.floor(lo*2)/2;hi=Math.ceil(hi*2)/2;
+  const x=k=>L+(W-L-R)*diff(START,k)/n,y=v=>T+(H-T-B)*(hi-v)/(hi-lo);
+  let s='';
+  const step=(hi-lo)>4?1:0.5;
+  for(let v=lo;v<=hi+1e-9;v+=step){s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/>`;if(W>320||Math.round(v*2)%2===0)s+=`<text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--sub)">${v.toFixed(step<1?1:0)}</text>`}
+  const marks=[[START,'11/25'],['2026-12-15','12/15'],[GOAL,'1/1']];if(W>400)marks.splice(1,0,['2026-12-05','12/5']),marks.splice(3,0,['2026-12-25','12/25']);
+  for(const [k,l] of marks)s+=`<text x="${x(k)}" y="${H-6}" text-anchor="middle" font-size="11" fill="var(--sub)">${l}</text>`;
+  s+=`<line x1="${x(GOAL)}" x2="${x(GOAL)}" y1="${T}" y2="${H-B}" stroke="var(--red)" stroke-dasharray="3 4"/>`;
+  if(pts.length>1)s+=`<polyline fill="none" stroke="var(--sub)" stroke-width="1.5" stroke-opacity=".6" points="${pts.map(p=>x(p.k)+','+y(p.w)).join(' ')}"/>`;
+  for(const p of pts)s+=`<circle cx="${x(p.k)}" cy="${y(p.w)}" r="2.5" fill="var(--sub)"/>`;
+  const av=pts.map(p=>({k:p.k,v:avg7(p.k)}));
+  if(av.length>1)s+=`<polyline fill="none" stroke="var(--red)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${av.map(p=>x(p.k)+','+y(p.v)).join(' ')}"/>`;
+  chart.innerHTML=s;
+}
+const ro=new ResizeObserver(draw);ro.observe(chart);
+
+const MENU=[
+ {w:'1〜2週目',items:[['スクワット','15回×3'],['腕立て伏せ（膝つきOK）','10回×3'],['プランク','30秒×3']],note:'セット間の休憩は1分。フォーム優先でOK。'},
+ {w:'3〜4週目',items:[['スクワット','20回×3'],['腕立て伏せ','15回×3'],['プランク','45秒×3'],['ランジ','左右10回×3']],note:'きつければ回数を少し減らしてもいい。'},
+ {w:'5週目（ラスト）',items:[['スクワット','20回×3'],['腕立て伏せ','15回×3'],['プランク','45秒×3'],['ランジ','左右10回×3']],note:'休憩を30秒に縮めて仕上げ。'}];
+function weekIdx(k){const d=diff(START,k);return d<14?0:d<28?1:2}
+const FOOD=[
+ ['家ごはん','出されたものは普通に食べてOK。おかわりだけしない'],
+ ['ご飯の量','茶碗1杯まで。大盛りにしない'],
+ ['おかず','肉・魚・卵・豆腐を先に食べて、ご飯は最後'],
+ ['学食','定食を選ぶ。ラーメン・丼・大盛りは週1まで'],
+ ['学食の追加','余裕があれば小鉢（サラダ・冷奴）を足す'],
+ ['飲み物','水・お茶。ジュースやカフェオレはやめる'],
+ ['間食','帰宅後〜夜のお菓子をやめるのが一番効く'],
+ ['年末','クリスマス・忘年会は気にせず楽しんで、次の日に戻す']];
+function renderPanel(){
+  const p=$('panel');
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===tab?'true':'false'));
+  if(tab==='train'){
+    const m=MENU[weekIdx(clampK(todayK))];
+    p.innerHTML=`<h3>今週のメニュー：${m.w}</h3><ul class="list">${m.items.map(([a,b])=>`<li><span>${a}</span><span>${b}</span></li>`).join('')}</ul><p class="note">月・水・金に15〜20分。${m.note}</p>`;
+  }else if(tab==='food'){
+    p.innerHTML=`<h3>ごはんのコツ</h3><ul class="list">${FOOD.map(([a,b])=>`<li style="display:block"><b>${a}</b><br><span style="font-weight:400">${b}</span></li>`).join('')}</ul>`;
+  }else{
+    const ks=ALL.filter(k=>k<=todayK).reverse();
+    p.innerHTML='<h3>履歴</h3><ul class="list hist"></ul><p class="note">タップでその日を開いて編集できます。</p><h3 style="margin-top:18px">バックアップ</h3><p class="note" style="margin-top:0">データはこのブラウザにだけ保存されます。機種変更や履歴削除の前にコピーしてメモ帳などに保存してください。</p><div class="toggles"><button class="tg" id="bkcopy">コピーする</button><button class="tg" id="bkload">貼り付けて復元</button></div><textarea id="bktext" rows="3" placeholder="復元するときはここにバックアップを貼り付け" aria-label="バックアップ"></textarea><p class="note" id="bkmsg"></p>';
+    const ul=p.querySelector('ul');
+    for(const k of ks){const e=get(k),d=parse(k);const li=document.createElement('li');if(k===cur)li.className='on';
+      const a=document.createElement('span');a.textContent=(d.getMonth()+1)+'/'+d.getDate()+'（'+WD[d.getDay()]+'）';
+      const dots=document.createElement('span');dots.className='dots';dots.textContent=(e.tr?' 筋トレ':'')+(e.ns?' 間食なし':'');a.append(dots);
+      const b=document.createElement('span');b.textContent=e.w!=null?Number(e.w).toFixed(1)+'kg':'—';
+      li.append(a,b);li.addEventListener('click',()=>{cur=k;renderAll();window.scrollTo({top:0,behavior:'smooth'})});ul.append(li)}
+    $('bkcopy').addEventListener('click',async()=>{const t=JSON.stringify(data);try{await navigator.clipboard.writeText(t);$('bkmsg').textContent='コピーしました'}catch(e){$('bktext').value=t;$('bktext').select();$('bkmsg').textContent='下の欄を選択してコピーしてください'}});
+    $('bkload').addEventListener('click',()=>{try{const o=JSON.parse($('bktext').value);if(!o||typeof o!=='object'||Array.isArray(o))throw 0;const nd={};for(const k in o)if(/^\d{4}-\d\d-\d\d$/.test(k)&&o[k]&&typeof o[k]==='object')nd[k]=o[k];data=nd;save(START);renderAll();tab='hist';renderPanel();$('bkmsg').textContent='復元しました'}catch(e){$('bkmsg').textContent='形式が正しくありません'}});
+  }
+}
+function renderAll(){renderDay();renderStats();draw();renderPanel()}
+
+const timers={};
+function patch(k,obj){
+  const base=k===START&&!data[k]?{w:BASE.w,f:BASE.f}:{};delete obj.stAuto;delete obj.slAuto;
+  data[k]={...base,...(data[k]||{}),...obj};
+  for(const f in data[k])if(data[k][f]===null||data[k][f]==='')delete data[k][f];
+  renderStats();draw();if(tab==='hist')renderPanel();
+  $('status').textContent='保存中…';
+  clearTimeout(timers[k]);timers[k]=setTimeout(()=>save(k),600);
+}
+function save(k){try{localStorage.setItem('nyb-data',JSON.stringify(data));$('status').textContent='保存しました（このブラウザ内）'}catch(e){$('status').textContent='保存できませんでした（プライベートモードだと保存されません）'}}
+const num=v=>v===''||v==null?null:Number(v);
+for(const f of ['w','f','sl','st'])$(f).addEventListener('input',e=>{let v=num(e.target.value);if(v!=null&&isNaN(v))return;patch(cur,{[f]:v})});
+document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{
+  const f=b.dataset.k,d=Number(b.dataset.d);let v=get(cur)[f];
+  if(v==null||get(cur)[f+'Auto'])v=v??lastVal(f,cur)??(f==='sl'?7:f==='f'?BASE.f:BASE.w); else v=Number(v)+d;
+  v=Math.round(v*10)/10;if(v<0)v=0;$(f).value=v;patch(cur,{[f]:v})}));
+$('tr').addEventListener('click',()=>{const v=!get(cur).tr;setT('tr',v);patch(cur,{tr:v})});
+$('ns').addEventListener('click',()=>{const v=!get(cur).ns;setT('ns',v);patch(cur,{ns:v})});
+$('memo').addEventListener('input',e=>patch(cur,{memo:e.target.value}));
+$('prev').addEventListener('click',()=>{if(cur>START){cur=addDays(cur,-1);renderAll()}});
+$('next').addEventListener('click',()=>{if(cur<GOAL&&cur<todayK){cur=addDays(cur,1);renderAll()}});
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.t;renderPanel()}));
+
+try{data=JSON.parse(localStorage.getItem('nyb-data')||'{}')||{}}catch(e){data={}}
+renderAll();
+$('status').textContent='保存はこのブラウザ内です';
+async function loadAuto(){
+  try{const r=await fetch('data.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();
+    const days=j&&typeof j.days==='object'?j.days:{};const nd={};
+    for(const k in days){if(!/^\d{4}-\d\d-\d\d$/.test(k))continue;const v=days[k]||{};const st=Number(v.steps),sl=Number(v.sleep);nd[k]={};if(v.steps!=null&&isFinite(st))nd[k].steps=Math.round(st);if(v.sleep!=null&&isFinite(sl))nd[k].sleep=Math.round(sl*10)/10}
+    auto=nd;autoAt=typeof j.updated==='string'?j.updated:'';renderAll();
+    $('status').textContent='歩数を読み込みました'+(autoAt?'（更新 '+autoAt.replace('T',' ').slice(0,16)+'）':'');
+  }catch(e){$('status').textContent='保存はこのブラウザ内です（歩数データはまだありません）'}
+}
+loadAuto();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadAuto()});
+}
+</script>
+</body>
+</html>
