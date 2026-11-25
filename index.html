@@ -97,13 +97,13 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
     </div>
     <div class="big">
       <button class="step" data-k="w" data-d="-0.1" aria-label="体重を0.1減らす">−</button>
-      <input id="w" type="number" inputmode="decimal" step="0.1" placeholder="--.-" aria-label="体重">
+      <input id="w" type="number" inputmode="numeric" step="0.1" placeholder="--.-" aria-label="体重">
       <button class="step" data-k="w" data-d="0.1" aria-label="体重を0.1増やす">＋</button>
     </div>
-    <div class="unit">体重 kg（朝・トイレのあと）</div>
+    <div class="unit">体重 kg（朝・トイレのあと）／671と打てば67.1</div>
     <div class="grid">
       <div class="field"><label for="f">体脂肪率 %</label>
-        <div class="mini"><button data-k="f" data-d="-0.1" aria-label="体脂肪率を下げる">−</button><input id="f" type="number" inputmode="decimal" step="0.1" placeholder="--"><button data-k="f" data-d="0.1" aria-label="体脂肪率を上げる">＋</button></div></div>
+        <div class="mini"><button data-k="f" data-d="-0.1" aria-label="体脂肪率を下げる">−</button><input id="f" type="number" inputmode="numeric" step="0.1" placeholder="--"><button data-k="f" data-d="0.1" aria-label="体脂肪率を上げる">＋</button></div></div>
       <div class="field"><label for="sl" id="sll">睡眠 h</label>
         <div class="mini"><button data-k="sl" data-d="-0.5" aria-label="睡眠を減らす">−</button><input id="sl" type="number" inputmode="decimal" step="0.5" placeholder="--"><button data-k="sl" data-d="0.5" aria-label="睡眠を増やす">＋</button></div></div>
       <div class="field"><label for="st" id="stl">歩数</label>
@@ -261,7 +261,9 @@ function patch(k,obj){
 }
 function save(k){try{localStorage.setItem('nyb-data',JSON.stringify(data));$('status').textContent='保存しました（このブラウザ内）'}catch(e){$('status').textContent='保存できませんでした（プライベートモードだと保存されません）'}}
 const num=v=>v===''||v==null?null:Number(v);
-for(const f of ['w','f','sl','st'])$(f).addEventListener('input',e=>{let v=num(e.target.value);if(v!=null&&isNaN(v))return;patch(cur,{[f]:v})});
+for(const f of ['w','f','sl','st'])$(f).addEventListener('input',e=>{const raw=e.target.value;let v=num(raw);if(v!=null&&isNaN(v))return;
+  if((f==='w'||f==='f')&&/^\d{3}$/.test(raw)){v=Number(raw)/10;e.target.value=v.toFixed(1)}
+  patch(cur,{[f]:v})});
 document.querySelectorAll('[data-d]').forEach(b=>b.addEventListener('click',()=>{
   const f=b.dataset.k,d=Number(b.dataset.d);let v=get(cur)[f];
   if(v==null||get(cur)[f+'Auto'])v=v??lastVal(f,cur)??(f==='sl'?7:f==='f'?BASE.f:BASE.w); else v=Number(v)+d;
