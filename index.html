@@ -135,6 +135,7 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
       <button class="tab" role="tab" data-t="train" aria-selected="true">筋トレ</button>
       <button class="tab" role="tab" data-t="food" aria-selected="false">ごはん</button>
       <button class="tab" role="tab" data-t="hist" aria-selected="false">履歴</button>
+      <button class="tab" role="tab" data-t="sync" aria-selected="false">同期</button>
     </div>
     <div id="panel"></div>
   </section>
@@ -235,9 +236,18 @@ function renderPanel(){
     p.innerHTML=`<h3>今週のメニュー：${m.w}</h3><ul class="list">${m.items.map(([a,b])=>`<li><span>${a}</span><span>${b}</span></li>`).join('')}</ul><p class="note">月・水・金に15〜20分。${m.note}</p>`;
   }else if(tab==='food'){
     p.innerHTML=`<h3>ごはんのコツ</h3><ul class="list">${FOOD.map(([a,b])=>`<li style="display:block"><b>${a}</b><br><span style="font-weight:400">${b}</span></li>`).join('')}</ul>`;
+  }else if(tab==='sync'){
+    p.innerHTML=`<h3>同期（非公開リポジトリ）</h3><p class="note" style="margin-top:0" id="synst"></p>
+    <label class="note" for="tok" style="display:block;margin-top:10px">アクセストークン</label>
+    <input id="tok" type="password" autocomplete="off" placeholder="github_pat_…" style="width:100%;font:16px inherit;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);margin-top:4px">
+    <div class="toggles"><button class="tg" id="toksave">保存して同期</button><button class="tg" id="tokdel">この端末の同期を解除</button></div>
+    <p class="note">保存先：sou-0828/body-log-data の log.json。トークンは端末（ブラウザ）ごとに最初に1回だけ貼ればOK。Safariとホーム画面アプリは別扱いなので、両方使うならそれぞれで貼る。</p>`;
+    $('synst').textContent=token?('この端末は同期中です'+(lastSync?'（最終 '+lastSync+'）':'')):'この端末はまだ同期していません';
+    $('toksave').addEventListener('click',()=>{const t=$('tok').value.trim();if(!t){$('synst').textContent='トークンを貼り付けてください';return}token=t;try{localStorage.setItem('nyb-token',t)}catch(e){}$('tok').value='';sync()});
+    $('tokdel').addEventListener('click',()=>{token='';try{localStorage.removeItem('nyb-token')}catch(e){}renderPanel();$('status').textContent='保存はこのブラウザ内です'});
   }else{
     const ks=ALL.filter(k=>k<=todayK).reverse();
-    p.innerHTML='<h3>履歴</h3><ul class="list hist"></ul><p class="note">タップでその日を開いて編集できます。</p><h3 style="margin-top:18px">バックアップ</h3><p class="note" style="margin-top:0">データはこのブラウザにだけ保存されます。機種変更や履歴削除の前にコピーしてメモ帳などに保存してください。</p><div class="toggles"><button class="tg" id="bkcopy">コピーする</button><button class="tg" id="bkload">貼り付けて復元</button></div><textarea id="bktext" rows="3" placeholder="復元するときはここにバックアップを貼り付け" aria-label="バックアップ"></textarea><p class="note" id="bkmsg"></p>';
+    p.innerHTML='<h3>履歴</h3><ul class="list hist"></ul><p class="note">タップでその日を開いて編集できます。</p><h3 style="margin-top:18px">バックアップ</h3><p class="note" style="margin-top:0">同期していない端末では、データはこのブラウザにだけ保存されます。念のためときどきコピーしてメモ帳などに保存しておくと安心です。</p><div class="toggles"><button class="tg" id="bkcopy">コピーする</button><button class="tg" id="bkload">貼り付けて復元</button></div><textarea id="bktext" rows="3" placeholder="復元するときはここにバックアップを貼り付け" aria-label="バックアップ"></textarea><p class="note" id="bkmsg"></p>';
     const ul=p.querySelector('ul');
     for(const k of ks){const e=get(k),d=parse(k);const li=document.createElement('li');if(k===cur)li.className='on';
       const a=document.createElement('span');a.textContent=(d.getMonth()+1)+'/'+d.getDate()+'（'+WD[d.getDay()]+'）';
@@ -245,21 +255,48 @@ function renderPanel(){
       const b=document.createElement('span');b.textContent=e.w!=null?Number(e.w).toFixed(1)+'kg':'—';
       li.append(a,b);li.addEventListener('click',()=>{cur=k;renderAll();window.scrollTo({top:0,behavior:'smooth'})});ul.append(li)}
     $('bkcopy').addEventListener('click',async()=>{const t=JSON.stringify(data);try{await navigator.clipboard.writeText(t);$('bkmsg').textContent='コピーしました'}catch(e){$('bktext').value=t;$('bktext').select();$('bkmsg').textContent='下の欄を選択してコピーしてください'}});
-    $('bkload').addEventListener('click',()=>{try{const o=JSON.parse($('bktext').value);if(!o||typeof o!=='object'||Array.isArray(o))throw 0;const nd={};for(const k in o)if(/^\d{4}-\d\d-\d\d$/.test(k)&&o[k]&&typeof o[k]==='object')nd[k]=o[k];data=nd;save(START);renderAll();tab='hist';renderPanel();$('bkmsg').textContent='復元しました'}catch(e){$('bkmsg').textContent='形式が正しくありません'}});
+    $('bkload').addEventListener('click',()=>{try{const o=JSON.parse($('bktext').value);if(!o||typeof o!=='object'||Array.isArray(o))throw 0;const nd={};for(const k in o)if(/^\d{4}-\d\d-\d\d$/.test(k)&&o[k]&&typeof o[k]==='object')nd[k]={...o[k],_t:Date.now()};data=merge(data,nd);save(START);renderAll();tab='hist';renderPanel();$('bkmsg').textContent='復元しました'}catch(e){$('bkmsg').textContent='形式が正しくありません'}});
   }
 }
 function renderAll(){renderDay();renderStats();draw();renderPanel()}
 
 const timers={};
 function patch(k,obj){
-  const base={};delete obj.stAuto;delete obj.slAuto;
+  const base={};delete obj.stAuto;delete obj.slAuto;obj._t=Date.now();
   data[k]={...base,...(data[k]||{}),...obj};
   for(const f in data[k])if(data[k][f]===null||data[k][f]==='')delete data[k][f];
   renderStats();draw();if(tab==='hist')renderPanel();
   $('status').textContent='保存中…';
   clearTimeout(timers[k]);timers[k]=setTimeout(()=>save(k),600);
 }
-function save(k){try{localStorage.setItem('nyb-data',JSON.stringify(data));$('status').textContent='保存しました（このブラウザ内）'}catch(e){$('status').textContent='保存できませんでした（プライベートモードだと保存されません）'}}
+function saveLocal(){try{localStorage.setItem('nyb-data',JSON.stringify(data));return true}catch(e){return false}}
+function save(k){const ok=saveLocal();if(token){clearTimeout(syncTimer);syncTimer=setTimeout(()=>sync(true),1500)}else $('status').textContent=ok?'保存しました（このブラウザ内）':'保存できませんでした（プライベートモードだと保存されません）'}
+const REPO='sou-0828/body-log-data',FILE='log.json',API='https://api.github.com/repos/'+REPO+'/contents/'+FILE;
+let token='';try{token=localStorage.getItem('nyb-token')||''}catch(e){}
+let syncing=false,again=false,syncTimer,lastSync='';
+function b64e(str){const b=new TextEncoder().encode(str);let s='';for(let i=0;i<b.length;i+=8192)s+=String.fromCharCode(...b.subarray(i,i+8192));return btoa(s)}
+function b64d(c){return new TextDecoder().decode(Uint8Array.from(atob(c.replace(/\s/g,'')),x=>x.charCodeAt(0)))}
+function clean(o){const nd={};if(o&&typeof o==='object'&&!Array.isArray(o))for(const k in o)if(/^\d{4}-\d\d-\d\d$/.test(k)&&o[k]&&typeof o[k]==='object'&&!Array.isArray(o[k]))nd[k]=o[k];return nd}
+function merge(a,b){const r={...a};for(const k in b)if(!r[k]||(Number(b[k]._t)||0)>(Number(r[k]._t)||0))r[k]=b[k];return r}
+const hdr=()=>({Authorization:'Bearer '+token,Accept:'application/vnd.github+json'});
+async function pull(){const r=await fetch(API+'?t='+Date.now(),{headers:hdr(),cache:'no-store'});
+  if(r.status===401)throw new Error('auth');if(r.status===404)return {sha:null,remote:{}};if(!r.ok)throw new Error(r.status===403?'auth':'net');
+  const j=await r.json();let remote={};try{remote=clean(JSON.parse(b64d(j.content||'')))}catch(e){}return {sha:j.sha,remote}}
+function put(obj,sha){const body={message:'log '+key(new Date()),content:b64e(JSON.stringify(obj,null,1))};if(sha)body.sha=sha;
+  return fetch(API,{method:'PUT',headers:{...hdr(),'Content-Type':'application/json'},body:JSON.stringify(body)})}
+async function sync(){
+  if(!token)return;if(syncing){again=true;return}syncing=true;$('status').textContent='同期中…';
+  try{
+    let {sha,remote}=await pull();data=merge(remote,data);saveLocal();renderAll();
+    if(JSON.stringify(data)!==JSON.stringify(remote)){
+      let r=await put(data,sha);
+      if(r.status===409||r.status===422){({sha,remote}=await pull());data=merge(remote,data);saveLocal();r=await put(data,sha)}
+      if(!r.ok)throw new Error(r.status===404?'repo':r.status===401||r.status===403?'auth':'net');
+    }
+    lastSync=new Date().toTimeString().slice(0,5);$('status').textContent='同期済み ✓ '+lastSync;
+  }catch(e){$('status').textContent=e.message==='auth'?'同期できません：トークンを確認してください（同期タブ）':e.message==='repo'?'同期できません：body-log-data にアクセスできません（同期タブ）':'同期できませんでした。通信が戻ったら再同期します'}
+  syncing=false;if(tab==='sync')renderPanel();if(again){again=false;sync()}
+}
 const num=v=>v===''||v==null?null:Number(v);
 for(const f of ['w','f','sl','st'])$(f).addEventListener('input',e=>{const raw=e.target.value;let v=num(raw);if(v!=null&&isNaN(v))return;
   if((f==='w'||f==='f')&&/^\d{3}$/.test(raw)){v=Number(raw)/10;e.target.value=v.toFixed(1)}
@@ -277,17 +314,17 @@ document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{tab
 
 try{data=JSON.parse(localStorage.getItem('nyb-data')||'{}')||{}}catch(e){data={}}
 renderAll();
-$('status').textContent='保存はこのブラウザ内です';
+$('status').textContent=token?'同期中…':'保存はこのブラウザ内です';if(token)sync();
 async function loadAuto(){
   try{const r=await fetch('data.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;const j=await r.json();
     const days=j&&typeof j.days==='object'?j.days:{};const nd={};
     for(const k in days){if(!/^\d{4}-\d\d-\d\d$/.test(k))continue;const v=days[k]||{};const st=Number(v.steps),sl=Number(v.sleep);nd[k]={};if(v.steps!=null&&isFinite(st))nd[k].steps=Math.round(st);if(v.sleep!=null&&isFinite(sl))nd[k].sleep=Math.round(sl*10)/10}
     auto=nd;autoAt=typeof j.updated==='string'?j.updated:'';renderAll();
-    $('status').textContent='歩数を読み込みました'+(autoAt?'（更新 '+autoAt.replace('T',' ').slice(0,16)+'）':'');
-  }catch(e){$('status').textContent='保存はこのブラウザ内です（歩数データはまだありません）'}
+    if(!token)$('status').textContent='歩数を読み込みました'+(autoAt?'（更新 '+autoAt.replace('T',' ').slice(0,16)+'）':'');
+  }catch(e){if(!token)$('status').textContent='保存はこのブラウザ内です（歩数データはまだありません）'}
 }
 loadAuto();
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)loadAuto()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadAuto();sync()}});
 }
 </script>
 </body>
