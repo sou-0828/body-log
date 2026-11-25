@@ -86,7 +86,7 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
       <b id="left">--<span>日</span></b>
       <div class="bar"><i id="prog" style="width:0"></i></div>
     </div>
-    <div class="goal">目標<strong>体脂肪率 15%台</strong>週0.3〜0.5kg減</div>
+    <div class="goal">目標<strong>66kg未満</strong>体脂肪率15%台</div>
   </header>
 
   <section class="card" aria-label="今日の記録">
@@ -127,7 +127,7 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
   <section class="card">
     <h3>体重の推移</h3>
     <div class="fig"><svg id="chart" role="img" aria-label="体重の推移グラフ"></svg></div>
-    <div class="legend"><span><i style="background:var(--sub)"></i>毎日</span><span><i style="background:var(--red);height:4px"></i>7日平均</span></div>
+    <div class="legend"><span><i style="background:var(--sub)"></i>毎日</span><span><i style="background:var(--red);height:4px"></i>7日平均</span><span><i style="background:var(--ok)"></i>目標 66kg</span></div>
   </section>
 
   <section class="card">
@@ -141,7 +141,7 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
 </div>
 <script>
 {
-const START='2026-11-25',GOAL='2027-01-01',BASE={w:68.1,f:17.8};
+const START='2026-11-25',GOAL='2027-01-01',BASE={w:68.1,f:17.8},TARGET=66;
 const pad=n=>String(n).padStart(2,'0');
 const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const parse=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
@@ -194,7 +194,7 @@ function draw(){
   const W=chart.clientWidth,H=chart.clientHeight;if(!W)return;
   const pts=series().filter(p=>p.w!=null);
   const L=34,R=10,T=10,B=24,n=ALL.length-1;
-  const vals=pts.map(p=>p.w);let lo=Math.min(...vals,BASE.w-2.5),hi=Math.max(...vals,BASE.w+0.5);
+  const vals=pts.map(p=>p.w);let lo=Math.min(...vals,TARGET-0.5),hi=Math.max(...vals,BASE.w+0.5);
   lo=Math.floor(lo*2)/2;hi=Math.ceil(hi*2)/2;
   const x=k=>L+(W-L-R)*diff(START,k)/n,y=v=>T+(H-T-B)*(hi-v)/(hi-lo);
   let s='';
@@ -203,6 +203,7 @@ function draw(){
   const marks=[[START,'11/25'],['2026-12-15','12/15'],[GOAL,'1/1']];if(W>400)marks.splice(1,0,['2026-12-05','12/5']),marks.splice(3,0,['2026-12-25','12/25']);
   for(const [k,l] of marks)s+=`<text x="${x(k)}" y="${H-6}" text-anchor="middle" font-size="11" fill="var(--sub)">${l}</text>`;
   s+=`<line x1="${x(GOAL)}" x2="${x(GOAL)}" y1="${T}" y2="${H-B}" stroke="var(--red)" stroke-dasharray="3 4"/>`;
+  s+=`<line x1="${L}" x2="${W-R}" y1="${y(TARGET)}" y2="${y(TARGET)}" stroke="var(--ok)" stroke-width="2" stroke-dasharray="6 4"/><text x="${L+6}" y="${y(TARGET)+15}" font-size="12" font-weight="700" fill="var(--ok)">目標 66kg</text>`;
   if(pts.length>1)s+=`<polyline fill="none" stroke="var(--sub)" stroke-width="1.5" stroke-opacity=".6" points="${pts.map(p=>x(p.k)+','+y(p.w)).join(' ')}"/>`;
   for(const p of pts)s+=`<circle cx="${x(p.k)}" cy="${y(p.w)}" r="2.5" fill="var(--sub)"/>`;
   const av=pts.map(p=>({k:p.k,v:avg7(p.k)}));
