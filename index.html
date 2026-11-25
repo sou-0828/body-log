@@ -140,10 +140,11 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
     </div>
     <div id="panel"></div>
   </section>
+  <p class="note" style="text-align:center;margin-top:20px" id="ver"></p>
 </div>
 <script>
 {
-const START='2026-11-25',GOAL='2027-01-01',BASE={w:68.1,f:17.8},TARGET=66;
+const VERSION='v1.7',START='2026-11-25',GOAL='2027-01-01',BASE={w:68.1,f:17.8},TARGET=66;
 const pad=n=>String(n).padStart(2,'0');
 const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const parse=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
@@ -243,7 +244,7 @@ function renderPanel(){
     <input id="tok" type="password" autocomplete="off" placeholder="github_pat_…" style="width:100%;font:16px inherit;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);margin-top:4px">
     <div class="toggles"><button class="tg" id="toksave">保存して同期</button><button class="tg" id="tokdel">この端末の同期を解除</button></div>
     <p class="note">保存先：sou-0828/body-log-data の log.json。トークンは端末（ブラウザ）ごとに最初に1回だけ貼ればOK。Safariとホーム画面アプリは別扱いなので、両方使うならそれぞれで貼る。</p>`;
-    $('synst').textContent=token?('この端末は同期中です'+(lastSync?'（最終 '+lastSync+'）':'')):'この端末はまだ同期していません';
+    $('synst').textContent=token?('保存中のトークン：'+token.slice(0,11)+'…'+token.slice(-4)+'（'+token.length+'文字'+(token.startsWith('github_pat_')&&token.length!==93?'・通常は93文字':'')+'）'+(lastSync?'／最終同期 '+lastSync:'')):'この端末はまだ同期していません';
     $('toksave').addEventListener('click',()=>{const t=cleanTok($('tok').value);if(!/^(github_pat_|ghp_)\w{20,}$/.test(t)){$('synst').textContent='トークンの形が違います。github_pat_ で始まる文字列をそのまま貼ってください';return}token=t;try{localStorage.setItem('nyb-token',t)}catch(e){}$('tok').value='';sync()});
     $('tokdel').addEventListener('click',()=>{token='';try{localStorage.removeItem('nyb-token')}catch(e){}renderPanel();$('status').textContent='保存はこのブラウザ内です'});
   }else{
@@ -315,6 +316,7 @@ $('next').addEventListener('click',()=>{if(cur<GOAL&&cur<todayK){cur=addDays(cur
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{tab=b.dataset.t;renderPanel()}));
 
 try{data=JSON.parse(localStorage.getItem('nyb-data')||'{}')||{}}catch(e){data={}}
+$('ver').textContent='body-log '+VERSION;
 renderAll();
 $('status').textContent=token?'同期中…':'保存はこのブラウザ内です';if(token)sync();
 async function loadAuto(){
