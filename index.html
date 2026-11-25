@@ -40,7 +40,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
 .step{width:52px;height:52px;border-radius:50%;border:0;background:var(--redbg);color:var(--red);font-size:26px;font-weight:700;flex:none}
 .big input{width:100%;max-width:200px;text-align:center;font:900 clamp(48px,15vw,64px)/1 "Zen Kaku Gothic New",sans-serif;color:var(--ink);background:transparent;border:0;padding:0}
 .unit{text-align:center;color:var(--sub);font-size:13px;margin-bottom:10px}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.grid .wide{grid-column:1/-1}
 .field{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:8px 6px;text-align:center}
 .field label{font-size:13px;color:var(--sub);display:block}
 .mini{display:flex;align-items:center;justify-content:center;gap:2px}
@@ -106,7 +107,7 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
         <div class="mini"><button data-k="f" data-d="-0.1" aria-label="体脂肪率を下げる">−</button><input id="f" type="number" inputmode="numeric" step="0.1" placeholder="--"><button data-k="f" data-d="0.1" aria-label="体脂肪率を上げる">＋</button></div></div>
       <div class="field"><label for="sl" id="sll">睡眠 h</label>
         <div class="mini"><button data-k="sl" data-d="-0.5" aria-label="睡眠を減らす">−</button><input id="sl" type="number" inputmode="decimal" step="0.5" placeholder="--"><button data-k="sl" data-d="0.5" aria-label="睡眠を増やす">＋</button></div></div>
-      <div class="field"><label for="st" id="stl">歩数</label>
+      <div class="field wide"><label for="st" id="stl">歩数</label>
         <input id="st" type="number" inputmode="numeric" placeholder="--"></div>
     </div>
     <div class="toggles">
@@ -280,7 +281,7 @@ function clean(o){const nd={};if(o&&typeof o==='object'&&!Array.isArray(o))for(c
 function merge(a,b){const r={...a};for(const k in b)if(!r[k]||(Number(b[k]._t)||0)>(Number(r[k]._t)||0))r[k]=b[k];return r}
 const hdr=()=>({Authorization:'Bearer '+token,Accept:'application/vnd.github+json'});
 async function pull(){const r=await fetch(API+'?t='+Date.now(),{headers:hdr(),cache:'no-store'});
-  if(r.status===401)throw new Error('auth');if(r.status===404)return {sha:null,remote:{}};if(!r.ok)throw new Error(r.status===403?'auth':'net');
+  if(r.status===401)throw new Error('auth');if(r.status===404)return {sha:null,remote:{}};if(!r.ok)throw new Error(r.status===403?'auth':'net:読込'+r.status);
   const j=await r.json();let remote={};try{remote=clean(JSON.parse(b64d(j.content||'')))}catch(e){}return {sha:j.sha,remote}}
 function put(obj,sha){const body={message:'log '+key(new Date()),content:b64e(JSON.stringify(obj,null,1))};if(sha)body.sha=sha;
   return fetch(API,{method:'PUT',headers:{...hdr(),'Content-Type':'application/json'},body:JSON.stringify(body)})}
@@ -291,10 +292,10 @@ async function sync(){
     if(JSON.stringify(data)!==JSON.stringify(remote)){
       let r=await put(data,sha);
       if(r.status===409||r.status===422){({sha,remote}=await pull());data=merge(remote,data);saveLocal();r=await put(data,sha)}
-      if(!r.ok)throw new Error(r.status===404?'repo':r.status===401||r.status===403?'auth':'net');
+      if(!r.ok){let m='';try{m=(await r.json()).message||''}catch(_){}throw new Error(r.status===404?'repo':r.status===401||r.status===403?'auth':'net:保存'+r.status+' '+m)}
     }
     lastSync=new Date().toTimeString().slice(0,5);$('status').textContent='同期済み ✓ '+lastSync;
-  }catch(e){$('status').textContent=e.message==='auth'?'同期できません：トークンを確認してください（同期タブ）':e.message==='repo'?'同期できません：body-log-data にアクセスできません（同期タブ）':'同期できませんでした。通信が戻ったら再同期します'}
+  }catch(e){$('status').textContent=e.message==='auth'?'同期できません：トークンを確認してください（同期タブ）':e.message==='repo'?'同期できません：body-log-data にアクセスできません（同期タブ）':'同期できませんでした（'+String(e.message||e).slice(0,80)+'）'}
   syncing=false;if(tab==='sync')renderPanel();if(again){again=false;sync()}
 }
 const num=v=>v===''||v==null?null:Number(v);
