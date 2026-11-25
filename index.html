@@ -118,7 +118,7 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
   </section>
 
   <section class="stats" aria-label="数字">
-    <div class="stat"><small>開始からの変化</small><b id="s1">--</b></div>
+    <div class="stat"><small>初日の朝からの変化</small><b id="s1">--</b></div>
     <div class="stat"><small>直近7日の平均</small><b id="s2">--</b></div>
     <div class="stat"><small>最新の体脂肪率</small><b id="s3">--</b></div>
     <div class="stat"><small>筋トレ ／ 間食なし</small><b id="s4">--</b></div>
@@ -154,7 +154,8 @@ let cur=clampK(todayK),data={},auto={},autoAt='',tab='train';
 const $=id=>document.getElementById(id);
 const ALL=[];for(let k=START;k<=GOAL;k=addDays(k,1))ALL.push(k);
 
-function get(k){const d={...(data[k]||{})},a=auto[k]||{};if(d.st==null&&a.steps!=null){d.st=a.steps;d.stAuto=1}if(d.sl==null&&a.sleep!=null){d.sl=a.sleep;d.slAuto=1}if(k===START){d.w=d.w??BASE.w;d.f=d.f??BASE.f}return d}
+function get(k){const d={...(data[k]||{})},a=auto[k]||{};if(d.st==null&&a.steps!=null){d.st=a.steps;d.stAuto=1}if(d.sl==null&&a.sleep!=null){d.sl=a.sleep;d.slAuto=1}return d}
+function firstVal(field){for(const k of ALL){const v=get(k)[field];if(v!=null&&v!=='')return Number(v)}return null}
 function lastVal(field,before){for(let i=ALL.indexOf(before);i>=0;i--){const v=get(ALL[i])[field];if(v!=null&&v!=='')return v}return null}
 
 function renderDay(){
@@ -179,7 +180,7 @@ function avg7(k){const i=ALL.indexOf(k);const v=ALL.slice(Math.max(0,i-6),i+1).m
 function renderStats(){
   const left=Math.max(0,diff(todayK,GOAL));$('left').firstChild.textContent=left;
   $('prog').style.width=Math.min(100,Math.max(0,diff(START,todayK)/diff(START,GOAL)*100))+'%';
-  const lw=lastVal('w',clampK(todayK)),ch=lw!=null?lw-BASE.w:null;
+  const lw=lastVal('w',clampK(todayK)),fw=firstVal('w'),ch=lw!=null&&fw!=null?lw-fw:null;
   const s1=$('s1');s1.className=ch==null?'':ch<=0?'down':'upc';
   s1.textContent=ch==null?'--':(ch>0?'+':ch<0?'−':'±')+Math.abs(ch).toFixed(1);
   s1.insertAdjacentHTML('beforeend','<span>kg</span>');
@@ -251,7 +252,7 @@ function renderAll(){renderDay();renderStats();draw();renderPanel()}
 
 const timers={};
 function patch(k,obj){
-  const base=k===START&&!data[k]?{w:BASE.w,f:BASE.f}:{};delete obj.stAuto;delete obj.slAuto;
+  const base={};delete obj.stAuto;delete obj.slAuto;
   data[k]={...base,...(data[k]||{}),...obj};
   for(const f in data[k])if(data[k][f]===null||data[k][f]==='')delete data[k][f];
   renderStats();draw();if(tab==='hist')renderPanel();
