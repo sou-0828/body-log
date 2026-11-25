@@ -282,7 +282,7 @@ function clean(o){const nd={};if(o&&typeof o==='object'&&!Array.isArray(o))for(c
 function merge(a,b){const r={...a};for(const k in b)if(!r[k]||(Number(b[k]._t)||0)>(Number(r[k]._t)||0))r[k]=b[k];return r}
 const hdr=()=>({Authorization:'Bearer '+token,Accept:'application/vnd.github+json'});
 async function pull(){const r=await fetch(API+'?t='+Date.now(),{headers:hdr(),cache:'no-store'});
-  if(r.status===401)throw new Error('auth');if(r.status===404)return {sha:null,remote:{}};if(!r.ok)throw new Error(r.status===403?'auth':'net:読込'+r.status);
+  if(r.status===401)throw new Error('auth:読込401');if(r.status===404)return {sha:null,remote:{}};if(!r.ok)throw new Error(r.status===403?'auth:読込403':'net:読込'+r.status);
   const j=await r.json();let remote={};try{remote=clean(JSON.parse(b64d(j.content||'')))}catch(e){}return {sha:j.sha,remote}}
 function put(obj,sha){const body={message:'log '+key(new Date()),content:b64e(JSON.stringify(obj,null,1))};if(sha)body.sha=sha;
   return fetch(API,{method:'PUT',headers:{...hdr(),'Content-Type':'application/json'},body:JSON.stringify(body)})}
@@ -293,10 +293,10 @@ async function sync(){
     if(JSON.stringify(data)!==JSON.stringify(remote)){
       let r=await put(data,sha);
       if(r.status===409||r.status===422){({sha,remote}=await pull());data=merge(remote,data);saveLocal();r=await put(data,sha)}
-      if(!r.ok){let m='';try{m=(await r.json()).message||''}catch(_){}throw new Error(r.status===404?'repo':r.status===401||r.status===403?'auth':'net:保存'+r.status+' '+m)}
+      if(!r.ok){let m='';try{m=(await r.json()).message||''}catch(_){}throw new Error(r.status===404?'repo':r.status===401||r.status===403?'auth:保存'+r.status:'net:保存'+r.status+' '+m)}
     }
     lastSync=new Date().toTimeString().slice(0,5);$('status').textContent='同期済み ✓ '+lastSync;
-  }catch(e){$('status').textContent=e.message==='auth'?'同期できません：トークンを確認してください（同期タブ）':e.message==='repo'?'同期できません：body-log-data にアクセスできません（同期タブ）':'同期できませんでした（'+String(e.message||e).slice(0,80)+'）'}
+  }catch(e){const em=String(e.message||'');$('status').textContent=em==='auth:保存403'?'同期できません：トークンに書き込み権限がありません（Contents を Read and write に）':em.startsWith('auth')?'同期できません：トークンが無効です（'+em.slice(5)+'）':e.message==='repo'?'同期できません：body-log-data にアクセスできません（同期タブ）':'同期できませんでした（'+String(e.message||e).slice(0,80)+'）'}
   syncing=false;if(tab==='sync')renderPanel();if(again){again=false;sync()}
 }
 const num=v=>v===''||v==null?null:Number(v);
