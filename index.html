@@ -64,6 +64,12 @@ textarea{width:100%;margin-top:10px;border:1px solid var(--line);border-radius:1
 h3{font-size:17px;margin:0 0 8px}
 .fig{position:relative;height:200px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
 .legend{font-size:13px;color:var(--sub);display:flex;gap:14px;margin-top:6px}
+.slhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.slhead h3{margin:0}
+.pager{display:flex;gap:4px}.pager button{width:28px;height:28px;border:0;background:none;padding:0;display:grid;place-items:center}
+.pager button i{width:8px;height:8px;border-radius:50%;background:var(--line)}.pager button[aria-current=true] i{background:var(--red)}
+.slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}.slides::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;scroll-snap-align:start;min-width:0}
+.swipe{font-size:13px;color:var(--sub);text-align:right;margin-top:4px}
 .legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:4px;border-radius:2px}
 .tabs{display:flex;gap:6px;margin-bottom:10px}
 .tab{flex:1;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-weight:700}
@@ -126,9 +132,18 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
   </section>
 
   <section class="card">
-    <h3>体重の推移</h3>
-    <div class="fig"><svg id="chart" role="img" aria-label="体重の推移グラフ"></svg></div>
-    <div class="legend"><span><i style="background:var(--sub)"></i>毎日</span><span><i style="background:var(--red);height:4px"></i>7日平均</span><span><i style="background:var(--ok)"></i>目標 66kg</span></div>
+    <div class="slhead"><h3 id="slt">体重の推移</h3><div class="pager"><button data-s="0" aria-label="体重グラフ" aria-current="true"><i></i></button><button data-s="1" aria-label="歩数グラフ" aria-current="false"><i></i></button></div></div>
+    <div class="slides" id="slides">
+      <div class="slide">
+        <div class="fig"><svg id="chart" role="img" aria-label="体重の推移グラフ"></svg></div>
+        <div class="legend"><span><i style="background:var(--sub)"></i>毎日</span><span><i style="background:var(--red);height:4px"></i>7日平均</span><span><i style="background:var(--ok)"></i>目標 66kg</span></div>
+      </div>
+      <div class="slide">
+        <div class="fig"><svg id="chart2" role="img" aria-label="歩数の推移グラフ"></svg></div>
+        <div class="legend"><span><i style="background:var(--red);height:8px;width:8px"></i>手入力</span><span><i style="background:var(--sub);height:8px;width:8px"></i>自動（Muse）</span><span id="stavg"></span></div>
+      </div>
+    </div>
+    <div class="swipe" id="swipe">← スワイプで歩数</div>
   </section>
 
   <section class="card">
@@ -144,7 +159,7 @@ ul.list li span:last-child{font-weight:700;white-space:nowrap;text-align:right}
 </div>
 <script>
 {
-const VERSION='v1.7',START='2026-11-25',GOAL='2027-01-01',BASE={w:68.1,f:17.8},TARGET=66;
+const VERSION='v1.8',START='2026-11-25',GOAL='2027-01-01',BASE={w:68.1,f:17.8},TARGET=66;
 const pad=n=>String(n).padStart(2,'0');
 const key=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const parse=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)};
@@ -213,8 +228,34 @@ function draw(){
   const av=pts.map(p=>({k:p.k,v:avg7(p.k)}));
   if(av.length>1)s+=`<polyline fill="none" stroke="var(--red)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${av.map(p=>x(p.k)+','+y(p.v)).join(' ')}"/>`;
   chart.innerHTML=s;
+  draw2();
 }
-const ro=new ResizeObserver(draw);ro.observe(chart);
+const chart2=$('chart2');
+function draw2(){
+  const W=chart2.clientWidth,H=chart2.clientHeight;if(!W)return;
+  const pts=ALL.filter(k=>k<=todayK).map(k=>{const e=get(k);return {k,v:e.st!=null?Number(e.st):null,a:!!e.stAuto}}).filter(p=>p.v!=null&&isFinite(p.v));
+  const L=40,R=10,T=10,B=24,n=ALL.length;
+  const mx=Math.max(10000,...pts.map(p=>p.v));const top=Math.ceil(mx/2000)*2000;
+  const bw=(W-L-R)/n,x=k=>L+bw*diff(START,k),y=v=>T+(H-T-B)*(1-v/top);
+  let s='';
+  for(let v=0;v<=top;v+=top>12000?4000:2000){s+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--sub)">${v>=1000?(v/1000)+'k':v}</text>`}
+  const marks=[[START,'11/25'],['2026-12-15','12/15'],[GOAL,'1/1']];if(W>400)marks.splice(1,0,['2026-12-05','12/5']),marks.splice(3,0,['2026-12-25','12/25']);
+  for(const [k,l] of marks)s+=`<text x="${x(k)+bw/2}" y="${H-6}" text-anchor="middle" font-size="11" fill="var(--sub)">${l}</text>`;
+  const w=Math.max(2,bw*0.7);
+  for(const p of pts){const h=Math.max(1,(H-T-B)*p.v/top);s+=`<rect x="${x(p.k)+(bw-w)/2}" y="${y(p.v)}" width="${w}" height="${h}" rx="${Math.min(3,w/2)}" fill="${p.a?'var(--sub)':'var(--red)'}"/>`}
+  if(!pts.length)s+=`<text x="${(L+W-R)/2}" y="${H/2}" text-anchor="middle" font-size="13" fill="var(--sub)">まだ歩数のデータがありません</text>`;
+  chart2.innerHTML=s;
+  const last7=ALL.filter(k=>k<=todayK).slice(-7).map(k=>get(k).st).filter(v=>v!=null&&isFinite(Number(v))).map(Number);
+  $('stavg').textContent=last7.length?'直近7日平均 '+Math.round(last7.reduce((a,b)=>a+b,0)/last7.length).toLocaleString()+'歩':'';
+}
+const ro=new ResizeObserver(draw);ro.observe(chart);ro.observe(chart2);
+const slides=$('slides'),TITLES=['体重の推移','歩数の推移'];
+function curSlide(){return Math.round(slides.scrollLeft/Math.max(1,slides.clientWidth))}
+function markSlide(){const i=curSlide();$('slt').textContent=TITLES[i]||TITLES[0];document.querySelectorAll('.pager button').forEach(b=>b.setAttribute('aria-current',Number(b.dataset.s)===i?'true':'false'));$('swipe').textContent=i?'体重に戻る →':'← スワイプで歩数'}
+slides.addEventListener('scroll',()=>{clearTimeout(slides._t);slides._t=setTimeout(markSlide,60)},{passive:true});
+document.querySelectorAll('.pager button').forEach(b=>b.addEventListener('click',()=>slides.scrollTo({left:slides.clientWidth*Number(b.dataset.s),behavior:'smooth'})));
+$('swipe').addEventListener('click',()=>slides.scrollTo({left:curSlide()?0:slides.clientWidth,behavior:'smooth'}));
+slides.addEventListener('keydown',e=>{if(e.key==='ArrowRight')slides.scrollTo({left:slides.clientWidth,behavior:'smooth'});if(e.key==='ArrowLeft')slides.scrollTo({left:0,behavior:'smooth'})});slides.tabIndex=0;
 
 const MENU=[
  {w:'1〜2週目',items:[['スクワット','15回×3'],['腕立て伏せ（膝つきOK）','10回×3'],['プランク','30秒×3']],note:'セット間の休憩は1分。フォーム優先でOK。'},
